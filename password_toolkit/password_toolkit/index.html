@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Password Toolkit</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/zxcvbn/4.4.2/zxcvbn.js"></script>
+    <style>
+        body {
+            background-color: #1a1a1a; /* Dark background for a techy feel */
+            color: #ffffff; /* White text for contrast */
+        }
+        .password-strength-meter {
+            height: 5px;
+            background: #e0e0e0;
+            margin-top: 8px;
+        }
+        .password-strength-meter-fill {
+            height: 100%;
+            transition: width 0.3s;
+        }
+        input, button {
+            transition: all 0.3s ease;
+        }
+        input:focus {
+            outline: none;
+            border-color: #00ff00; /* Green border on focus */
+            box-shadow: 0 0 5px #00ff00; /* Green glow effect */
+        }
+        input:hover {
+            border-color: #00ff00; /* Green border on hover */
+        }
+        button:hover {
+            background-color: #00ff00; /* Green background on hover */
+            color: #000; /* Black text on hover */
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-bold">Password Toolkit</h1>
+            <p class="text-gray-300 mt-2">Professional password analysis and wordlist generation</p>
+        </header>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <!-- Password Analyzer Section -->
+            <div class="bg-gray-800 p-6 rounded-lg shadow-md">
+                <h2 class="text-2xl font-semibold mb-4">Password Strength Analyzer</h2>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-300 mb-1">Test a password:</label>
+                    <div class="relative">
+                        <input type="password" id="passwordInput" class="w-full p-2 border border-gray-600 rounded focus:ring-2 focus:ring-blue-500" placeholder="Enter password">
+                        <button id="togglePassword" class="absolute right-2 top-2 text-gray-300 hover:text-gray-100">👁️</button>
+                    </div>
+                    <div class="password-strength-meter mt-2">
+                        <div id="strengthMeter" class="password-strength-meter-fill"></div>
+                    </div>
+                    <div id="strengthResult" class="text-xs mt-1"></div>
+                </div>
+                <button id="analyzeBtn" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition">Analyze Password</button>
+                
+                <div id="analysisResults" class="mt-4 hidden">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="p-3 bg-blue-50 rounded">
+                            <div class="text-xs font-medium text-blue-800">STRENGTH SCORE</div>
+                            <div id="strengthScore" class="text-2xl font-bold"></div>
+                        </div>
+                        <div class="p-3 bg-blue-50 rounded">
+                            <div class="text-xs font-medium text-blue-800">CRACK TIME</div>
+                            <div id="crackTime" class="font-semibold"></div>
+                        </div>
+                    </div>
+                    <div class="mt-3 p-3 bg-yellow-50 rounded">
+                        <div class="text-xs font-medium text-yellow-800">WARNINGS</div>
+                        <div id="warnings" class="text-sm"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Wordlist Generator Section -->
+            <div class="bg-gray-800 p-6 rounded-lg shadow-md">
+                <h2 class="text-2xl font-semibold mb-4">Custom Wordlist Generator</h2>
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300">Target Info:</label>
+                        <input id="targetName" type="text" class="w-full p-2 border border-gray-600 rounded mt-1" placeholder="Full name">
+                        <input id="targetBirthyear" type="text" class="w-full p-2 border border-gray-600 rounded mt-1" placeholder="Birth year (1990)">
+                        <input id="targetPet" type="text" class="w-full p-2 border border-gray-600 rounded mt-1" placeholder="Pet name">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300">Options:</label>
+                        <label class="flex items-center mt-2">
+                            <input type="checkbox" id="includeLeet" class="mr-2" checked>
+                            <span>Include leetspeak variations (a=4, e=3)</span>
+                        </label>
+                        <label class="flex items-center mt-1">
+                            <input type="checkbox" id="includeYears" class="mr-2" checked>
+                            <span>Append common years (1990-2023)</span>
+                        </label>
+                    </div>
+                    <button id="generateBtn" class="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700 transition">Generate Wordlist</button>
+                </div>
+
+                <div id="wordlistSection" class="mt-4 hidden">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-sm font-medium">Generated Words: <span id="wordCount">0</span></span>
+                        <button id="exportBtn" class="text-sm bg-blue-100 text-blue-700 font-medium px-3 py-1 rounded hover:bg-blue-200 transition">
+                            ↓ Export Wordlist (.txt)
+                        </button>
+                    </div>
+                    <div id="wordList" class="border rounded p-2 text-sm font-mono bg-gray-50"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Password strength analyzer
+        document.getElementById('analyzeBtn').addEventListener('click', analyzePassword);
+        document.getElementById('togglePassword').addEventListener('click', togglePasswordVisibility);
+        document.getElementById('generateBtn').addEventListener('click', generateWordlist);
+        document.getElementById('exportBtn').addEventListener('click', exportWordlist);
+
+        function togglePasswordVisibility() {
+            const input = document.getElementById('passwordInput');
+            input.type = input.type === 'password' ? 'text' : 'password';
+        }
+
+        function analyzePassword() {
+            const password = document.getElementById('passwordInput').value;
+            if (!password) {
+                alert('Please enter a password to analyze');
+                return;
+            }
+
+            // Use zxcvbn for professional analysis
+            const result = zxcvbn(password);
+            const strength = result.score;
+            const crackTime = result.crack_times_display.online_no_throttling_10_per_second;
+            const suggestions = result.feedback.suggestions.join(', ') || "No major weaknesses detected";
+            
+            // Update UI with zxcvbn results  
+            document.getElementById('strengthScore').textContent = strength + "/4";
+            document.getElementById('crackTime').textContent = crackTime;
+            document.getElementById('warnings').textContent = password.length < 8 ? 
+                "Too short (minimum 8 characters recommended)" : 
+                suggestions;
+            
+            // Update meter
+            const meter = document.getElementById('strengthMeter');
+            meter.style.width = `${strength * 25}%`;
+            meter.style.backgroundColor = 
+                strength <= 1 ? '#ef4444' : // Red for weak
+                strength == 2 ? '#f59e0b' : // Yellow for medium
+                strength == 3 ? '#10b981' : // Green for strong
+                '#3b82f6'; // Blue for excellent
+                
+            document.getElementById('analysisResults').classList.remove('hidden');
+        }
+
+        function generateWordlist() {
+            const name = document.getElementById('targetName').value;
+            const birthyear = document.getElementById('targetBirthyear').value;
+            const pet = document.getElementById('targetPet').value;
+            const includeLeet = document.getElementById('includeLeet').checked;
+            const includeYears = document.getElementById('includeYears').checked;
+
+            if (!name && !pet) {
+                alert('Please provide at least one personal detail');
+                return;
+            }
+
+            let wordlist = new Set();
+            
+            // Base words
+            [name, birthyear, pet].forEach(word => word && wordlist.add(word.toLowerCase()));
+            
+            // Leetspeak variations
+            if (includeLeet) {
+                const leetMap = {a: '4', e: '3', i: '1', o: '0', s: '5', t: '7'};
+                [name, pet].forEach(word => {
+                    if (!word) return;
+                    word = word.toLowerCase();
+                    for (let i = 0; i < word.length; i++) {
+                        const char = word[i];
+                        if (leetMap[char]) {
+                            const leetWord = word.substring(0, i) + leetMap[char] + word.substring(i + 1);
+                            wordlist.add(leetWord);
+                        }
+                    }
+                });
+            }
+            
+            // Append years
+            if (includeYears) {
+                [name, pet].forEach(base => {
+                    if (!base) return;
+                    for (let year = 1990; year <= 2023; year++) {
+                        wordlist.add(base + year);
+                        wordlist.add(base + year.toString().substring(2));
+                    }
+                });
+            }
+
+            // Display results
+            const wordListElement = document.getElementById('wordList');
+            wordListElement.innerHTML = Array.from(wordlist).map(word => 
+                `<div class="py-1 border-b border-gray-100">${word}</div>`
+            ).join('');
+            
+            document.getElementById('wordCount').textContent = wordlist.size;
+            document.getElementById('wordlistSection').classList.remove('hidden');
+        }
+
+        function exportWordlist() {
+            const words = Array.from(document.querySelectorAll('#wordList div')).map(el => el.textContent);
+            if (words.length === 0) {
+                alert('No words to export');
+                return;
+            }
+
+            const blob = new Blob([words.join('\n')], {type: 'text/plain'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'custom-wordlist.txt';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+    </script>
+</body>
+</html>
