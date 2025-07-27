@@ -35,6 +35,26 @@
             background-color: #00ff00; /* Green background on hover */
             color: #000; /* Black text on hover */
         }
+        /* Adjust input styles for better visibility */
+        input {
+            background-color: #2a2a2a; /* Darker background for input */
+            color: #ffffff; /* White text for input */
+            border: 1px solid #555; /* Lighter border for input */
+        }
+        /* Change text color for strength score, crack time, and warnings */
+        #strengthScore {
+            color: #000000; /* Black color for strength score */
+        }
+        #crackTime {
+            color: #000000; /* Black color for crack time */
+        }
+        #warnings {
+            color: #ffcc00; /* Yellow color for warnings */
+        }
+        /* Change color for generated wordlist items */
+        .generated-word {
+            color: #000000; /* Black color for generated words */
+        }
     </style>
 </head>
 <body class="min-h-screen">
@@ -207,7 +227,7 @@
             // Display results
             const wordListElement = document.getElementById('wordList');
             wordListElement.innerHTML = Array.from(wordlist).map(word => 
-                `<div class="py-1 border-b border-gray-100">${word}</div>`
+                `<div class="py-1 border-b border-gray-100 generated-word">${word}</div>`
             ).join('');
             
             document.getElementById('wordCount').textContent = wordlist.size;
